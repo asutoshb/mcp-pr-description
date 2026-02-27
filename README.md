@@ -31,16 +31,16 @@ Create a [GitHub Personal Access Token](https://github.com/settings/tokens) with
 
 Add to your MCP config file:
 
-**VS Code (Augment/Claude extension):** `~/.vscode/mcp.json`
-**Cursor:** `~/.cursor/mcp.json`  
+**VS Code (Augment):** Settings → search "augment mcp" → Edit in settings.json
+**Cursor:** `~/.cursor/mcp.json`
 **Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "pr-description": {
-      "command": "node",
-      "args": ["/path/to/mcp-pr-description/dist/index.js"],
+      "command": "npx",
+      "args": ["mcp-pr-description"],
       "env": {
         "GITHUB_TOKEN": "ghp_your_token_here"
       }
@@ -48,6 +48,8 @@ Add to your MCP config file:
   }
 }
 ```
+
+> **Note:** Using `npx` automatically resolves the package location. No need to specify a file path.
 
 ## Usage
 
