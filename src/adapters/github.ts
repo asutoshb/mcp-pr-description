@@ -20,7 +20,7 @@ export class GitHubAdapter {
     return null;
   }
 
-  async fetchMergedPRs(owner: string, repo: string, count: number = 20): Promise<PRData[]> {
+  async fetchMergedPRs(owner: string, repo: string, count: number = 10): Promise<PRData[]> {
     const { data: pullRequests } = await this.octokit.pulls.list({
       owner,
       repo,

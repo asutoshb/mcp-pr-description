@@ -1,6 +1,6 @@
 {
   "name": "mcp-pr-description",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server that generates PR descriptions by learning from your team's merged PRs",
   "type": "module",
   "main": "dist/index.js",
@@ -24,8 +24,16 @@
     "ai",
     "pr-description"
   ],
-  "author": "",
+  "author": "asutoshb",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asutoshb/mcp-pr-description.git"
+  },
+  "bugs": {
+    "url": "https://github.com/asutoshb/mcp-pr-description/issues"
+  },
+  "homepage": "https://github.com/asutoshb/mcp-pr-description#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@octokit/rest": "^21.0.0"

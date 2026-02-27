@@ -22,8 +22,8 @@ const TOOLS = [
       properties: {
         count: {
           type: 'number',
-          description: 'Number of PRs to analyze (default: 20)',
-          default: 20,
+          description: 'Number of PRs to analyze (default: 10)',
+          default: 10,
         },
       },
     },
@@ -93,7 +93,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'learn_pr_style': {
-        const count = typeof args.count === 'number' ? args.count : 20;
+        const count = typeof args.count === 'number' ? args.count : 10;
         const result = await learnPRStyle(count);
         return {
           content: [{ type: 'text', text: result.displayText }],

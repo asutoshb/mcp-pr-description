@@ -9,7 +9,7 @@ export interface LearnStyleResult {
   displayText: string;
 }
 
-export async function learnPRStyle(count: number = 20): Promise<LearnStyleResult> {
+export async function learnPRStyle(count: number = 10): Promise<LearnStyleResult> {
   try {
     const repoRoot = await getRepositoryRoot();
     const remoteUrl = await getRemoteUrl();
