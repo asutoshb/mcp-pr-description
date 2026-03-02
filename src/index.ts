@@ -16,7 +16,8 @@ const TOOLS = [
     description:
       'Learn PR writing style from merged pull requests. ' +
       'Analyzes structure, tone, formatting, and common patterns. ' +
-      'Run once per repo. Saves to .pr-style.json',
+      'Run once per repo. Saves to .pr-style.json. ' +
+      'Call this BEFORE generate_pr for best results, or skip for new repos (default template will be used).',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -32,8 +33,9 @@ const TOOLS = [
     name: 'generate_pr',
     description:
       'Generate PR title and description from current git changes. ' +
-      'Uses learned team style if available. ' +
-      'Analyzes branch name, commits, and file changes.',
+      'Uses learned team style if available, or default template for new repos. ' +
+      'Analyzes branch name, commits, and file changes. ' +
+      'IMPORTANT: After generating the PR content, ALWAYS call save_pr_description to save it to PR_DESCRIPTION.md',
     inputSchema: {
       type: 'object' as const,
       properties: {
