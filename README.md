@@ -12,12 +12,12 @@ An MCP (Model Context Protocol) server that generates PR descriptions by learnin
 
 ```bash
 # Clone and build
-git clone <repo-url>
+git clone https://github.com/asutoshb/mcp-pr-description.git
 cd mcp-pr-description
 npm install
 npm run build
 
-# Or install globally (after publishing)
+# Or install globally
 npm install -g mcp-pr-description
 ```
 
@@ -53,18 +53,28 @@ Add to your MCP config file:
 
 ## Usage
 
-In your AI assistant, use natural language:
+In **Augment** or **Cursor**, simply ask:
 
 ```
-"Learn our team's PR style"
-→ Analyzes last 20 merged PRs, saves patterns to .pr-style.json
-
-"Generate a PR for my changes"
-→ Creates PR title + description based on your git changes
-
-"Save the PR description"
-→ Writes PR_DESCRIPTION.md to your repo root
+"Generate PR description"
 ```
+
+### Other Prompts You Can Use
+
+```
+"Write PR description"
+"Create a PR for my changes"
+"Generate PR for this branch"
+"Write PR description comparing to develop"
+"Generate PR description and save it"
+```
+
+> 💡 Use natural language — the AI understands variations of these prompts!
+
+The AI will automatically:
+1. Learn your team's PR style (from last 10 merged PRs)
+2. Generate a PR title and description based on your current branch
+3. Save it to `PR_DESCRIPTION.md`
 
 ## Tools
 
@@ -77,11 +87,41 @@ In your AI assistant, use natural language:
 
 ## How It Works
 
-1. **Learn** — Fetches your last N merged PRs via GitHub API
+1. **Learn** — Fetches your last 10 merged PRs via GitHub API
 2. **Extract** — Identifies patterns: sections, tone, title format, ticket references
 3. **Cache** — Saves style to `.pr-style.json` (commit this for team sharing)
 4. **Generate** — Uses cached style + current git info to build PR prompt
 5. **Save** — Writes final PR to `PR_DESCRIPTION.md`
+
+## Default Template
+
+For new repos with no merged PRs, the tool uses this default format:
+
+```markdown
+## 🎯 What
+Brief description of the changes made.
+
+## 🤔 Why
+Reason for making these changes.
+
+## 🔧 Changes
+- Change 1
+- Change 2
+
+## 🧪 Testing
+How the changes were tested.
+
+## 🎫 Jira Ticket
+[PROJ-XXX](https://your-org.atlassian.net/browse/PROJ-XXX)
+
+## 📸 Screenshots
+Add screenshots if applicable.
+
+## 📝 Notes
+Any additional context or notes (optional).
+```
+
+> 💡 Once you have merged PRs, run `learn_pr_style` to learn your team's actual format.
 
 ## Output Files
 

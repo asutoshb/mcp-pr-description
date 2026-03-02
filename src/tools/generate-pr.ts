@@ -79,7 +79,35 @@ function buildPrompt(
     sections.push(formatStyleForDisplay(style));
     sections.push('');
   } else {
-    sections.push('## Note: No learned style found. Run `learn_pr_style` first for better results.');
+    sections.push('## Default PR Template (no learned style found)');
+    sections.push('');
+    sections.push('Use this format for the PR description:');
+    sections.push('');
+    sections.push('```markdown');
+    sections.push('## 🎯 What');
+    sections.push('Brief description of the changes made.');
+    sections.push('');
+    sections.push('## 🤔 Why');
+    sections.push('Reason for making these changes.');
+    sections.push('');
+    sections.push('## 🔧 Changes');
+    sections.push('- Change 1');
+    sections.push('- Change 2');
+    sections.push('');
+    sections.push('## 🧪 Testing');
+    sections.push('How the changes were tested.');
+    sections.push('');
+    sections.push('## 🎫 Jira Ticket');
+    sections.push('[PROJ-XXX](https://your-org.atlassian.net/browse/PROJ-XXX)');
+    sections.push('');
+    sections.push('## 📸 Screenshots');
+    sections.push('Add screenshots if applicable.');
+    sections.push('');
+    sections.push('## 📝 Notes');
+    sections.push('Any additional context or notes (optional).');
+    sections.push('```');
+    sections.push('');
+    sections.push('> 💡 Tip: Run `learn_pr_style` to learn your team\'s PR format from merged PRs.');
     sections.push('');
   }
 
