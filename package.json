@@ -1,6 +1,6 @@
 {
   "name": "mcp-pr-description",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "MCP server that generates PR descriptions by learning from your team's merged PRs",
   "type": "module",
   "main": "dist/index.js",
