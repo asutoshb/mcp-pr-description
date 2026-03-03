@@ -14,12 +14,13 @@ export interface GeneratePRResult {
 export async function generatePR(
   baseBranch: string = 'main',
   includeDiff: boolean = false,
-  writeFile: boolean = true
+  _writeFile: boolean = true,
+  cwd?: string
 ): Promise<GeneratePRResult> {
   try {
-    const repoRoot = await getRepositoryRoot();
-    const gitInfo = await getGitInfo(undefined, baseBranch);
-    const changeSummary = await getChangeSummary(undefined, baseBranch);
+    const repoRoot = await getRepositoryRoot(cwd);
+    const gitInfo = await getGitInfo(cwd, baseBranch);
+    const changeSummary = await getChangeSummary(cwd, baseBranch);
     const cachedStyle = await loadCachedStyle(repoRoot);
 
     const prompt = buildPrompt(gitInfo, changeSummary, cachedStyle, includeDiff);
@@ -40,13 +41,13 @@ export async function generatePR(
   }
 }
 
-export async function savePRDescription(title: string, body: string): Promise<{
+export async function savePRDescription(title: string, body: string, cwd?: string): Promise<{
   success: boolean;
   filePath?: string;
   message: string;
 }> {
   try {
-    const repoRoot = await getRepositoryRoot();
+    const repoRoot = await getRepositoryRoot(cwd);
     const filePath = await writePRDescriptionFile(repoRoot, title, body);
     return {
       success: true,
@@ -148,12 +149,12 @@ function buildPrompt(
   return sections.join('\n');
 }
 
-export async function getLearnedStyle(): Promise<{
+export async function getLearnedStyle(cwd?: string): Promise<{
   success: boolean;
   displayText: string;
 }> {
   try {
-    const repoRoot = await getRepositoryRoot();
+    const repoRoot = await getRepositoryRoot(cwd);
     const style = await loadCachedStyle(repoRoot);
 
     if (!style) {

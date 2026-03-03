@@ -9,10 +9,10 @@ export interface LearnStyleResult {
   displayText: string;
 }
 
-export async function learnPRStyle(count: number = 10): Promise<LearnStyleResult> {
+export async function learnPRStyle(count: number = 10, cwd?: string): Promise<LearnStyleResult> {
   try {
-    const repoRoot = await getRepositoryRoot();
-    const remoteUrl = await getRemoteUrl();
+    const repoRoot = await getRepositoryRoot(cwd);
+    const remoteUrl = await getRemoteUrl(cwd);
     
     const repoInfo = GitHubAdapter.parseRemoteUrl(remoteUrl);
     if (!repoInfo) {

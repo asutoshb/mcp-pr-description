@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { fileURLToPath } from 'url';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -9,6 +10,41 @@ import {
 
 import { learnPRStyle } from './tools/learn-style.js';
 import { generatePR, savePRDescription, getLearnedStyle } from './tools/generate-pr.js';
+
+const NOT_A_GIT_REPO_HINT =
+  '\n\n→ Fix: The MCP server runs outside your repo. In your MCP config (e.g. ~/.cursor/mcp.json), add to this server\'s "env":\n  "MCP_PR_WORKSPACE": "/absolute/path/to/your/repo"\nReplace with your actual repo path (e.g. the folder that contains .git). See README.';
+
+function fallbackCwd(cwdFromArgs?: string): string {
+  if (cwdFromArgs && cwdFromArgs.trim()) return cwdFromArgs.trim();
+  const env =
+    process.env.MCP_PR_WORKSPACE ||
+    process.env.CURSOR_WORKSPACE_DIR ||
+    process.env.WORKSPACE_FOLDER;
+  return env?.trim() || process.cwd();
+}
+
+async function resolveWorkspaceCwd(
+  server: Server,
+  cwdFromArgs?: string
+): Promise<string> {
+  try {
+    const { roots } = await server.listRoots();
+    const first = roots?.[0]?.uri;
+    if (first && first.startsWith('file://')) {
+      return fileURLToPath(first);
+    }
+  } catch {
+    /* client may not support roots/list */
+  }
+  return fallbackCwd(cwdFromArgs);
+}
+
+function addHintIfNotGitRepo(message: string): string {
+  if (/not a git repository/i.test(message)) {
+    return message + NOT_A_GIT_REPO_HINT;
+  }
+  return message;
+}
 
 const TOOLS = [
   {
@@ -25,6 +61,10 @@ const TOOLS = [
           type: 'number',
           description: 'Number of PRs to analyze (default: 10)',
           default: 10,
+        },
+        cwd: {
+          type: 'string',
+          description: 'Optional: absolute path to repo root. Usually not needed if MCP_PR_WORKSPACE is set or client sends roots.',
         },
       },
     },
@@ -49,6 +89,10 @@ const TOOLS = [
           description: 'Include code diff in context (default: false)',
           default: false,
         },
+        cwd: {
+          type: 'string',
+          description: 'Optional: absolute path to repo root. Usually not needed if MCP_PR_WORKSPACE is set or client sends roots.',
+        },
       },
     },
   },
@@ -60,13 +104,11 @@ const TOOLS = [
     inputSchema: {
       type: 'object' as const,
       properties: {
-        title: {
+        title: { type: 'string', description: 'PR title' },
+        body: { type: 'string', description: 'PR description body (markdown)' },
+        cwd: {
           type: 'string',
-          description: 'PR title',
-        },
-        body: {
-          type: 'string',
-          description: 'PR description body (markdown)',
+          description: 'Optional: absolute path to repo root.',
         },
       },
       required: ['title', 'body'],
@@ -77,7 +119,9 @@ const TOOLS = [
     description: 'Show the learned PR style for this repository.',
     inputSchema: {
       type: 'object' as const,
-      properties: {},
+      properties: {
+        cwd: { type: 'string', description: 'Optional: absolute path to repo root.' },
+      },
     },
   },
 ];
@@ -96,9 +140,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case 'learn_pr_style': {
         const count = typeof args.count === 'number' ? args.count : 10;
-        const result = await learnPRStyle(count);
+        const cwd = await resolveWorkspaceCwd(server, typeof args.cwd === 'string' ? args.cwd : undefined);
+        const result = await learnPRStyle(count, cwd);
+        const text = result.success ? result.displayText : addHintIfNotGitRepo(result.displayText);
         return {
-          content: [{ type: 'text', text: result.displayText }],
+          content: [{ type: 'text', text }],
           isError: !result.success,
         };
       }
@@ -106,11 +152,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'generate_pr': {
         const baseBranch = typeof args.baseBranch === 'string' ? args.baseBranch : 'main';
         const includeDiff = typeof args.includeDiff === 'boolean' ? args.includeDiff : false;
-        const result = await generatePR(baseBranch, includeDiff);
-        
+        const cwd = await resolveWorkspaceCwd(server, typeof args.cwd === 'string' ? args.cwd : undefined);
+        const result = await generatePR(baseBranch, includeDiff, true, cwd);
+
         if (!result.success) {
           return {
-            content: [{ type: 'text', text: `❌ ${result.message}` }],
+            content: [{ type: 'text', text: `❌ ${addHintIfNotGitRepo(result.message)}` }],
             isError: true,
           };
         }
@@ -128,25 +175,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'save_pr_description': {
         const title = typeof args.title === 'string' ? args.title : '';
         const body = typeof args.body === 'string' ? args.body : '';
-        
         if (!title || !body) {
           return {
             content: [{ type: 'text', text: '❌ Title and body are required' }],
             isError: true,
           };
         }
-
-        const result = await savePRDescription(title, body);
+        const cwd = await resolveWorkspaceCwd(server, typeof args.cwd === 'string' ? args.cwd : undefined);
+        const result = await savePRDescription(title, body, cwd);
+        const msg = result.success ? result.message : addHintIfNotGitRepo(result.message);
         return {
-          content: [{ type: 'text', text: result.success ? `✅ ${result.message}` : `❌ ${result.message}` }],
+          content: [{ type: 'text', text: result.success ? `✅ ${msg}` : `❌ ${msg}` }],
           isError: !result.success,
         };
       }
 
       case 'get_pr_style': {
-        const result = await getLearnedStyle();
+        const cwd = await resolveWorkspaceCwd(server, typeof args.cwd === 'string' ? args.cwd : undefined);
+        const result = await getLearnedStyle(cwd);
+        const text = result.success ? result.displayText : addHintIfNotGitRepo(result.displayText);
         return {
-          content: [{ type: 'text', text: result.displayText }],
+          content: [{ type: 'text', text }],
           isError: !result.success,
         };
       }
