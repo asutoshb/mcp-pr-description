@@ -75,7 +75,7 @@ The AI will **generate a title and description and save them to `PR_DESCRIPTION.
 "Write PR description"
 "Create a PR for my changes"
 "Generate PR for this branch"
-"Generate PR description against TS-37081"
+"Generate PR description against <your base branch>"
 ```
 
 > 💡 Use natural language — the AI understands variations.
