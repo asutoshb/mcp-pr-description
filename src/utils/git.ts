@@ -5,9 +5,9 @@ import type { GitInfo } from '../types.js';
 const execAsync = promisify(exec);
 
 async function gitCommand(command: string, cwd?: string): Promise<string> {
-  const { stdout } = await execAsync(command, { 
+  const { stdout } = await execAsync(command, {
     cwd: cwd || process.cwd(),
-    maxBuffer: 10 * 1024 * 1024
+    maxBuffer: 10 * 1024 * 1024,
   });
   return stdout.trim();
 }
@@ -28,9 +28,38 @@ export async function getRemoteUrl(cwd?: string): Promise<string> {
   }
 }
 
-export async function getDiff(cwd?: string, baseBranch?: string): Promise<string> {
-  const base = baseBranch || 'main';
-  
+export async function getUpstreamBranch(cwd?: string): Promise<string | null> {
+  try {
+    // symbolic-full-name keeps refs like origin/main
+    const upstream = await gitCommand(
+      'git rev-parse --abbrev-ref --symbolic-full-name @{u}',
+      cwd
+    );
+    return upstream || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveBaseBranch(
+  cwd?: string,
+  baseBranch?: string,
+  compareToUpstream?: boolean
+): Promise<string> {
+  if (compareToUpstream) {
+    const upstream = await getUpstreamBranch(cwd);
+    if (upstream) return upstream;
+  }
+  return baseBranch || 'main';
+}
+
+export async function getDiff(
+  cwd?: string,
+  baseBranch?: string,
+  compareToUpstream?: boolean
+): Promise<string> {
+  const base = await resolveBaseBranch(cwd, baseBranch, compareToUpstream);
+
   try {
     const diff = await gitCommand(`git diff ${base}...HEAD`, cwd);
     if (diff) return diff;
@@ -46,9 +75,13 @@ export async function getDiff(cwd?: string, baseBranch?: string): Promise<string
   return [staged, unstaged].filter(Boolean).join('\n');
 }
 
-export async function getCommitMessages(cwd?: string, baseBranch?: string): Promise<string[]> {
-  const base = baseBranch || 'main';
-  
+export async function getCommitMessages(
+  cwd?: string,
+  baseBranch?: string,
+  compareToUpstream?: boolean
+): Promise<string[]> {
+  const base = await resolveBaseBranch(cwd, baseBranch, compareToUpstream);
+
   try {
     const log = await gitCommand(`git log ${base}..HEAD --pretty=format:"%s"`, cwd);
     return log.split('\n').filter(Boolean);
@@ -62,9 +95,13 @@ export async function getCommitMessages(cwd?: string, baseBranch?: string): Prom
   }
 }
 
-export async function getChangeSummary(cwd?: string, baseBranch?: string): Promise<string> {
-  const base = baseBranch || 'main';
-  
+export async function getChangeSummary(
+  cwd?: string,
+  baseBranch?: string,
+  compareToUpstream?: boolean
+): Promise<string> {
+  const base = await resolveBaseBranch(cwd, baseBranch, compareToUpstream);
+
   try {
     return await gitCommand(`git diff ${base}...HEAD --stat`, cwd);
   } catch {
@@ -76,12 +113,16 @@ export async function getChangeSummary(cwd?: string, baseBranch?: string): Promi
   }
 }
 
-export async function getGitInfo(cwd?: string, baseBranch?: string): Promise<GitInfo> {
+export async function getGitInfo(
+  cwd?: string,
+  baseBranch?: string,
+  compareToUpstream?: boolean
+): Promise<GitInfo> {
   const [repositoryRoot, branchName, diff, commitMessages] = await Promise.all([
     getRepositoryRoot(cwd),
     getBranchName(cwd),
-    getDiff(cwd, baseBranch),
-    getCommitMessages(cwd, baseBranch),
+    getDiff(cwd, baseBranch, compareToUpstream),
+    getCommitMessages(cwd, baseBranch, compareToUpstream),
   ]);
 
   return { repositoryRoot, branchName, diff, commitMessages, stagedFiles: [] };

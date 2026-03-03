@@ -6,7 +6,9 @@ An MCP (Model Context Protocol) server that generates PR descriptions by learnin
 
 - **Learns your team's style** — Analyzes merged PRs to understand structure, tone, and patterns
 - **Generates PRs in that style** — Uses git diff, branch name, and commits to create matching PRs
-- **Saves to file** — Outputs `PR_DESCRIPTION.md` ready to copy-paste
+- **Saves automatically** — When you ask to "generate PR description", the agent writes `PR_DESCRIPTION.md` in your repo (no separate save step)
+- **Compare to main or upstream** — Optionally diff against the branch your current branch was cut from (`compareToUpstream`) for feature-branch PRs
+- **Works with your workspace** — Uses MCP roots or `MCP_PR_WORKSPACE` so the server runs in the correct repo
 
 ## Installation
 
@@ -42,56 +44,67 @@ Add to your MCP config file:
       "command": "npx",
       "args": ["mcp-pr-description"],
       "env": {
-        "GITHUB_TOKEN": "ghp_your_token_here"
+        "GITHUB_TOKEN": "ghp_your_token_here",
+        "MCP_PR_WORKSPACE": "/absolute/path/to/your/repo"
       }
     }
   }
 }
 ```
 
+- **GITHUB_TOKEN** — Required for `learn_pr_style` (GitHub API). Create a [token](https://github.com/settings/tokens) with `repo` scope.
+- **MCP_PR_WORKSPACE** — Optional if your client sends [MCP roots](https://modelcontextprotocol.io/docs/concepts/roots). If you see `fatal: not a git repository`, set this to your repo path (e.g. `/Users/you/my-project`). Restart the client after changing the config.
+
 > **Note:** Using `npx` automatically resolves the package location. No need to specify a file path.
 
 ## Usage
 
-In **Augment** or **Cursor**, simply ask:
+In **Cursor** or **Augment**, ask:
 
 ```
 "Generate PR description"
 ```
 
-### Other Prompts You Can Use
+The AI will **generate a title and description and save them to `PR_DESCRIPTION.md`** in one flow. You don’t need to ask to “save” separately.
+
+### Other prompts
 
 ```
 "Write PR description"
 "Create a PR for my changes"
 "Generate PR for this branch"
-"Write PR description comparing to develop"
-"Generate PR description and save it"
 ```
 
-> 💡 Use natural language — the AI understands variations of these prompts!
+> 💡 Use natural language — the AI understands variations.
 
-The AI will automatically:
-1. Learn your team's PR style (from last 10 merged PRs)
-2. Generate a PR title and description based on your current branch
-3. Save it to `PR_DESCRIPTION.md`
+What happens when you ask:
+1. **generate_pr** — Gets branch name, commits, and file changes (and optional diff). Uses learned style from `.pr-style.json` if present.
+2. **AI composes** — Title and body in your team’s style.
+3. **save_pr_description** — Writes `PR_DESCRIPTION.md` in your repo. The agent is instructed to always do this for “generate PR description” requests.
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `learn_pr_style` | Analyze merged PRs and learn team patterns |
-| `generate_pr` | Generate PR from current git diff |
-| `save_pr_description` | Save PR to `PR_DESCRIPTION.md` |
-| `get_pr_style` | Display learned style patterns |
+| `learn_pr_style` | Analyze merged PRs and learn team patterns. Saves to `.pr-style.json`. Run once per repo (or when style changes). |
+| `generate_pr` | Get PR context (branch, commits, files). Agent then composes title/body and calls `save_pr_description`. Options: `baseBranch` (default `main`), `includeDiff`, `compareToUpstream` (diff vs branch this was cut from). |
+| `save_pr_description` | Save title + body to `PR_DESCRIPTION.md`. Called by the agent after `generate_pr`. |
+| `get_pr_style` | Show the learned PR style for this repo. |
+
+### generate_pr options
+
+| Option | Default | Description |
+|--------|--------|-------------|
+| `baseBranch` | `main` | Base branch to compare against (for diff and commits). |
+| `includeDiff` | `false` | If `true`, include the full code diff in the context (larger prompt). |
+| `compareToUpstream` | `false` | If `true`, compare against the **upstream** of the current branch (the branch it was cut from). Falls back to `baseBranch` if no upstream is set. Use when opening a PR into a feature branch rather than `main`. |
 
 ## How It Works
 
-1. **Learn** — Fetches your last 10 merged PRs via GitHub API
-2. **Extract** — Identifies patterns: sections, tone, title format, ticket references
-3. **Cache** — Saves style to `.pr-style.json` (commit this for team sharing)
-4. **Generate** — Uses cached style + current git info to build PR prompt
-5. **Save** — Writes final PR to `PR_DESCRIPTION.md`
+1. **Learn** — `learn_pr_style` fetches your last 10 merged PRs via GitHub API and extracts structure, tone, and patterns.
+2. **Cache** — Saves to `.pr-style.json` in the repo (commit it for team sharing).
+3. **Generate** — When you ask for a PR description, the agent calls `generate_pr` (with optional `compareToUpstream`), gets branch/commits/files (and optionally diff), then composes title and body using the cached style or the default template.
+4. **Save** — The agent calls `save_pr_description` with that title and body, writing `PR_DESCRIPTION.md` in your repo.
 
 ## Default Template
 

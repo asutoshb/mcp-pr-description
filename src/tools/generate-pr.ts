@@ -15,12 +15,13 @@ export async function generatePR(
   baseBranch: string = 'main',
   includeDiff: boolean = false,
   _writeFile: boolean = true,
-  cwd?: string
+  cwd?: string,
+  compareToUpstream?: boolean
 ): Promise<GeneratePRResult> {
   try {
     const repoRoot = await getRepositoryRoot(cwd);
-    const gitInfo = await getGitInfo(cwd, baseBranch);
-    const changeSummary = await getChangeSummary(cwd, baseBranch);
+    const gitInfo = await getGitInfo(cwd, baseBranch, compareToUpstream);
+    const changeSummary = await getChangeSummary(cwd, baseBranch, compareToUpstream);
     const cachedStyle = await loadCachedStyle(repoRoot);
 
     const prompt = buildPrompt(gitInfo, changeSummary, cachedStyle, includeDiff);
@@ -140,11 +141,10 @@ function buildPrompt(
   }
 
   sections.push('## Instructions');
-  sections.push('Generate:');
-  sections.push('1. **Title** - concise, following team style if available');
-  sections.push('2. **Description** - full PR body with appropriate sections');
+  sections.push('1. Generate a **title** (concise) and **description** (full body with sections above).');
+  sections.push('2. **You MUST then call `save_pr_description`** with that title and body so the PR is saved to PR_DESCRIPTION.md.');
+  sections.push('   Do not respond to the user without calling save_pr_description—the user asked for a PR description and expects a saved file.');
   sections.push('');
-  sections.push('After generating, call `save_pr_description` to save as PR_DESCRIPTION.md');
 
   return sections.join('\n');
 }

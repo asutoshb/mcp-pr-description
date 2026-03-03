@@ -72,10 +72,9 @@ const TOOLS = [
   {
     name: 'generate_pr',
     description:
-      'Generate PR title and description from current git changes. ' +
-      'Uses learned team style if available, or default template for new repos. ' +
-      'Analyzes branch name, commits, and file changes. ' +
-      'IMPORTANT: After generating the PR content, ALWAYS call save_pr_description to save it to PR_DESCRIPTION.md',
+      'Generate PR title and description from current git changes, then save to file. ' +
+      'Returns context (branch, commits, files). You MUST compose a title and body from it, then call save_pr_description with that title and body so the user gets PR_DESCRIPTION.md. ' +
+      'Do not reply to the user with the PR content without calling save_pr_description first—saving is required for "generate PR description" requests.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -89,6 +88,12 @@ const TOOLS = [
           description: 'Include code diff in context (default: false)',
           default: false,
         },
+        compareToUpstream: {
+          type: 'boolean',
+          description:
+            'If true, compare against the current branch\'s upstream (the branch it was cut from). Falls back to baseBranch/main when no upstream is set.',
+          default: false,
+        },
         cwd: {
           type: 'string',
           description: 'Optional: absolute path to repo root. Usually not needed if MCP_PR_WORKSPACE is set or client sends roots.',
@@ -99,8 +104,8 @@ const TOOLS = [
   {
     name: 'save_pr_description',
     description:
-      'Save generated PR title and description to PR_DESCRIPTION.md file. ' +
-      'Call this after generate_pr to save the output.',
+      'Save PR title and description to PR_DESCRIPTION.md. ' +
+      'Call this after generate_pr with the title and body you composed—required to complete a "generate PR description" request.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -152,8 +157,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'generate_pr': {
         const baseBranch = typeof args.baseBranch === 'string' ? args.baseBranch : 'main';
         const includeDiff = typeof args.includeDiff === 'boolean' ? args.includeDiff : false;
+        const compareToUpstream =
+          typeof args.compareToUpstream === 'boolean' ? args.compareToUpstream : false;
         const cwd = await resolveWorkspaceCwd(server, typeof args.cwd === 'string' ? args.cwd : undefined);
-        const result = await generatePR(baseBranch, includeDiff, true, cwd);
+        const result = await generatePR(baseBranch, includeDiff, true, cwd, compareToUpstream);
 
         if (!result.success) {
           return {
