@@ -65,7 +65,7 @@ In **Cursor** or **Augment**, ask:
 "Generate PR description"
 ```
 
-To compare against a specific branch (e.g. the branch you cut from), include it in your request: **"Generate PR description against &lt;baseBranch&gt;"** (e.g. *"Generate PR description against TS-37081"*). If you don’t specify a base branch, the tool uses the default (upstream when set, otherwise `main`).
+To compare against a specific branch (e.g. the branch you cut from), include it in your request: **"Generate PR description against &lt;baseBranch&gt;"** (e.g. *"Generate PR description against 'Your base branch'"*). If you don’t specify a base branch, the tool uses the default (upstream when set, otherwise `main`).
 
 The AI will **generate a title and description and save them to `PR_DESCRIPTION.md`** in one flow. You don’t need to ask to “save” separately.
 
